@@ -10,7 +10,7 @@ services:
 
   web:
     build:
-      context: ./my-frontend
+      context: ./frontend
       dockerfile: Dockerfile
     image: docqa-web:latest
     container_name: docqa-web

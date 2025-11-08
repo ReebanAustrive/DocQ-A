@@ -1,65 +1,128 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
+import axios from "axios";
+import dynamic from "next/dynamic";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+
+type Result = { score:number; text:string; highlighted?:string };
 
 export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
+  const [indexed, setIndexed] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Result[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onUpload = async () => {
+    if (!file) return;
+    setBusy(true); setError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      await axios.post(`${API_BASE}/upload`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setIndexed(true);
+    } catch (e:any) {
+      setError(e?.message || "Upload failed");
+    } finally { setBusy(false); }
+  };
+
+  const onAsk = async () => {
+    if (!indexed || !query.trim()) return;
+    setBusy(true); setError(null);
+    try {
+      const { data } = await axios.post(`${API_BASE}/ask`, { query, k: 3 });
+      setResults(data.results || []);
+    } catch (e:any) {
+      setError(e?.message || "Query failed");
+    } finally { setBusy(false); }
+  };
+
+  const onReset = async () => {
+    setBusy(true);
+    try { await axios.post(`${API_BASE}/reset`); setIndexed(false); setResults([]); }
+    finally { setBusy(false); }
+  };
+
+  const highlight = (s?: string) => {
+    if (!s) return null;
+    // backend wraps matches with [[...]]; render with <mark>
+    const parts = s.split(/(\[\[.*?\]\])/g);
+    return parts.map((p, i) => {
+      const m = p.match(/^\[\[(.*)\]\]$/);
+      if (m) return <mark key={i}>{m[1]}</mark>;
+      return <span key={i}>{p}</span>;
+    });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen p-8 bg-gray-50">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <h1 className="text-3xl font-bold">DocQ&amp;A Lite</h1>
+        <p className="text-gray-600">Upload a PDF or .txt, then ask questions. Embeddings + FAISS.</p>
+
+        <div className="p-4 bg-white rounded-2xl shadow space-y-3">
+          <label className="block text-sm font-medium">Upload document</label>
+          <input type="file" accept=".pdf,.txt" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
+          <div className="flex gap-2">
+            <button
+              onClick={onUpload}
+              disabled={!file || busy}
+              className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-50"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              {busy ? "Indexing..." : "Index"}
+            </button>
+            <button
+              onClick={onReset}
+              disabled={busy}
+              className="px-4 py-2 rounded-xl border"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Reset
+            </button>
+          </div>
+          {indexed && <p className="text-sm text-green-600">Indexed ✔</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="p-4 bg-white rounded-2xl shadow space-y-3">
+          <label className="block text-sm font-medium">Ask a question</label>
+          <input
+            className="w-full border rounded-xl p-2"
+            placeholder="e.g., What is the main idea?"
+            value={query}
+            onChange={(e)=>setQuery(e.target.value)}
+          />
+          <button
+            onClick={onAsk}
+            disabled={!indexed || busy}
+            className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-50"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {busy ? "Searching..." : "Ask"}
+          </button>
         </div>
-      </main>
-    </div>
+
+        {results.length > 0 && (
+          <div className="p-4 bg-white rounded-2xl shadow">
+            <h2 className="font-semibold mb-2">Top matches</h2>
+            <ul className="space-y-3">
+              {results.map((r, i)=>(
+                <li key={i} className="border rounded-xl p-3">
+                  <div className="text-xs text-gray-500">score: {r.score}</div>
+                  <div className="prose whitespace-pre-wrap">{highlight(r.highlighted) ?? r.text}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <footer className="text-xs text-gray-500 pt-4">
+          Stack: Next.js • FastAPI • sentence-transformers • FAISS • Docker
+        </footer>
+      </div>
+    </main>
   );
 }
+
