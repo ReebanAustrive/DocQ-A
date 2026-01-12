@@ -59,38 +59,38 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-gray-50">
+    <main className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold">DocQ&amp;A Lite</h1>
-        <p className="text-gray-600">Upload a PDF or .txt, then ask questions. Embeddings + FAISS.</p>
+        <p className="text-gray-400">Upload a PDF or .txt, then ask questions. Embeddings + FAISS.</p>
 
-        <div className="p-4 bg-white rounded-2xl shadow space-y-3">
+        <div className="p-4 bg-slate-800/50 rounded-2xl shadow space-y-3 border border-slate-700">
           <label className="block text-sm font-medium">Upload document</label>
           <input type="file" accept=".pdf,.txt" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
           <div className="flex gap-2">
             <button
               onClick={onUpload}
               disabled={!file || busy}
-              className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               {busy ? "Indexing..." : "Index"}
             </button>
             <button
               onClick={onReset}
               disabled={busy}
-              className="px-4 py-2 rounded-xl border"
+              className="px-4 py-2 rounded-xl border border-slate-600 hover:bg-slate-700"
             >
               Reset
             </button>
           </div>
-          {indexed && <p className="text-sm text-green-600">Indexed ✔</p>}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {indexed && <p className="text-sm text-green-400">Indexed ✔</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
         </div>
 
-        <div className="p-4 bg-white rounded-2xl shadow space-y-3">
+        <div className="p-4 bg-slate-800/50 rounded-2xl shadow space-y-3 border border-slate-700">
           <label className="block text-sm font-medium">Ask a question</label>
           <input
-            className="w-full border rounded-xl p-2"
+            className="w-full border border-slate-600 rounded-xl p-2 bg-slate-900 text-white placeholder-gray-500"
             placeholder="e.g., What is the main idea?"
             value={query}
             onChange={(e)=>setQuery(e.target.value)}
@@ -98,19 +98,19 @@ export default function Home() {
           <button
             onClick={onAsk}
             disabled={!indexed || busy}
-            className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
           >
             {busy ? "Searching..." : "Ask"}
           </button>
         </div>
 
         {results.length > 0 && (
-          <div className="p-4 bg-white rounded-2xl shadow">
+          <div className="p-4 bg-slate-800/50 rounded-2xl shadow border border-slate-700">
             <h2 className="font-semibold mb-2">Top matches</h2>
             <ul className="space-y-3">
               {results.map((r, i)=>(
-                <li key={i} className="border rounded-xl p-3">
-                  <div className="text-xs text-gray-500">score: {r.score}</div>
+                <li key={i} className="border border-slate-700 rounded-xl p-3">
+                  <div className="text-xs text-gray-400">score: {r.score}</div>
                   <div className="prose whitespace-pre-wrap">{highlight(r.highlighted) ?? r.text}</div>
                 </li>
               ))}

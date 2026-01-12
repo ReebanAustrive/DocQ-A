@@ -55,8 +55,13 @@ def rebuild_index():
 def read_pdf(bytes_data: bytes) -> str:
     pdf = PdfReader(io.BytesIO(bytes_data))
     pages = []
-    for p in pdf.pages:
-        pages.append((p.extract_text() or "").strip())
+    for i, p in enumerate(pdf.pages):
+        try:
+            text = p.extract_text()
+            if text:
+                pages.append(text.strip())
+        except Exception as e:
+            print(f"Warning: Could not extract text from page {i}: {e}")
     return "\n".join(pages)
 
 def simple_highlight(text: str, query: str) -> str:
